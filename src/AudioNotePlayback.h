@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QPointer>
 
 class QBuffer;
 class QMediaPlayer;
@@ -34,12 +35,12 @@ signals:
     void activeChanged();
 
 private:
-    qint64 m_postition{};
+    qint64 m_postition = 0;
 
-    qint64 m_duration{};
+    qint64 m_duration = 0;
 
     QByteArray m_content;
-    QMediaPlayer* player;
-    QBuffer* playbackBuffer;
+    QPointer<QMediaPlayer> player;
+    QPointer<QBuffer> playbackBuffer;
 };
 

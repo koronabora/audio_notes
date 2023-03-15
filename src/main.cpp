@@ -1,6 +1,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+
 #include "Scanner.h"
 #include "AudioNote.h"
 #include "AudioNotesApp.h"
@@ -28,10 +29,9 @@ int main(int argc, char *argv[])
     qmlRegisterType<AudioNotePlayback>("AudioNotes", 1, 0, "AudioNotePlayback");
     qmlRegisterType<AudioNoteCreator>("AudioNotes", 1, 0, "AudioNoteCreator");
 
+    AudioNotesApp notesApp;
 
-    AudioNotesApp* notesApp = new AudioNotesApp();
-
-    engine.rootContext()->setContextProperty("notesApp", notesApp);
+    engine.rootContext()->setContextProperty("notesApp", &notesApp);
 
     const QUrl url(QStringLiteral("qrc:/qml/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &app,
@@ -40,9 +40,29 @@ int main(int argc, char *argv[])
                 QCoreApplication::exit(-1);
         },
         Qt::QueuedConnection);
+
     engine.load(url);
 
-    notesApp->init();
+    notesApp.init();
 
     return app.exec();
 }
+
+/* TODO list
+* main.cpp: add threads?
+* AudioNotesModel.cpp: strange methods
+* AudioNotesApp::AudioNotesApp() wrap m_reposModel in QScopedPointer?
+* AudioNotesApp: remove m_repos and read data from model
+* Check lambda in find_if in addIfNotExists
+* Why we need all that r-value references? what was the idea?
+* Add settings for deleteing files and realise it
+* Move checks to top
+* Format lambdas for better readability
+* Apply beatyfier to java brasets notation
+* Better way to store models in code
+* Need to add const type in const Q_PROPERTY?
+* Check all initializers
+* Check all Q_PROPERTIES
+* Add correct path cobining in AudioNoteCreator::create()
+* move AudioNoteCreator into separate thread (don't forget rewrite saveToFile)
+*/

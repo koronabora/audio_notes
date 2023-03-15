@@ -3,46 +3,49 @@
 #include <QUrl>
 #include <QDebug>
 
-AudioNotesReposModel::AudioNotesReposModel(QObject *parent)
-    : QAbstractListModel{parent}
+AudioNotesReposModel::AudioNotesReposModel(QObject* parent)
+    : QAbstractListModel{ parent }
 {
-
 }
 
-int AudioNotesReposModel::rowCount(const QModelIndex &) const
+AudioNotesReposModel::~AudioNotesReposModel()
+{
+    m_items.clear();
+}
+
+int AudioNotesReposModel::rowCount(const QModelIndex&) const
 {
     return m_items.size();
 }
 
-QVariant AudioNotesReposModel::data(const QModelIndex &index, int ) const
+QVariant AudioNotesReposModel::data(const QModelIndex& index, int) const
 {
-    return QVariant::fromValue(m_items[index.row()].get());
+    return QVariant::fromValue(m_items.at(index.row())->name());
 }
 
 QHash<int, QByteArray> AudioNotesReposModel::roleNames() const
 {
-    static QHash<int, QByteArray> sNames = { { 1, "repo" }};
+    static QHash<int, QByteArray> sNames = { { 1, "repo" } };
     return sNames;
 }
 
-void AudioNotesReposModel::addRepo(const QUrl &path)
+void AudioNotesReposModel::addRepo(const QUrl& path)
 {
-    auto &&newRepo = new AudioNotesRepo(path.toLocalFile(), this);
+    AudioNotesRepoInctance newRepo = std::make_unique<AudioNotesRepo>(path.toLocalFile(), this);
     newRepo->init();
-    addRepo(newRepo);
+    _addRepo(std::move(newRepo));
 }
 
-void AudioNotesReposModel::addRepo(QString path)
+void AudioNotesReposModel::addRepo(const QString& path)
 {
-    auto &&newRepo = new AudioNotesRepo(path, this);
+    AudioNotesRepoInctance newRepo = std::make_unique<AudioNotesRepo>(path, this);
     newRepo->init();
-    addRepo(newRepo);
+    _addRepo(std::move(newRepo));
 }
 
-
-void AudioNotesReposModel::addRepo(AudioNotesRepo *repo)
+void AudioNotesReposModel::_addRepo(AudioNotesRepoInctance repo)
 {
     beginInsertRows(QModelIndex(), m_items.size(), m_items.size());
-    m_items.emplace_back(repo);
+    m_items.append(std::move(repo));
     endInsertRows();
 }

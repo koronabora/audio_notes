@@ -54,10 +54,9 @@ public:
 
     const QVariantList &samples() const;
 
-    static AudioNote* build(const QString & path);
+    static std::unique_ptr<AudioNote> build(const QString &path);
 
-
-    void saveToFile(const QString & filePath);
+    bool saveToFile(const QString &filePath);
 
 public slots:
     void remove();
@@ -75,14 +74,13 @@ signals:
 
 private:
     QString m_path;
-    bool m_encrypted{};
+    bool m_encrypted = false;
 
     QColor m_color;
     QString m_name;
     QString m_password;
     QVariantList m_samples;
-    AudioNotePlayback *m_playback;
+    AudioNotePlayback* m_playback;
 
-    AudioNotePlayback *playback() const;
+    AudioNotePlayback* _playback() const;
 };
-

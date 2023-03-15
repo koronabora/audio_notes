@@ -1,28 +1,30 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QUrl>
 #include <memory>
 
 class AudioNotesRepo;
-class QUrl;
+
+typedef std::unique_ptr<AudioNotesRepo> AudioNotesRepoInctance;
 
 class AudioNotesReposModel : public QAbstractListModel
 {
     Q_OBJECT
 public:
     explicit AudioNotesReposModel(QObject *parent = nullptr);
-    ~AudioNotesReposModel() = default;
+    ~AudioNotesReposModel();
 
     int rowCount(const QModelIndex &) const override;
     QVariant data(const QModelIndex &index, int) const override;
     QHash<int, QByteArray> roleNames() const override;
 
     void addRepo(const QUrl &path);
-    void addRepo(QString path);
+    void addRepo(const QString &path);
 
 private:
-    std::vector<std::unique_ptr<AudioNotesRepo>> m_items;
+    QList<AudioNotesRepoInctance> m_items;
 
-    void addRepo(AudioNotesRepo* repo);
+    void _addRepo(AudioNotesRepoInctance repo);
 };
 

@@ -1,66 +1,70 @@
 #include "AudioNotesApp.h"
 
-#include "AudioNotesRepo.h"
-#include "AudioNotesReposModel.h"
+#include <QCoreApplication>
 #include <QFile>
 #include <QTextStream>
 #include <QUrl>
-
 #include <QDebug>
 
+#include "AudioNotesRepo.h"
+#include "AudioNotesReposModel.h"
+#include "Settings.h"
+
 AudioNotesApp::AudioNotesApp(QObject *parent)
-    : QObject{parent}
+    : QObject{parent},
+    m_reposModel{ new AudioNotesReposModel(this) }
 {
-    m_reposModel = new AudioNotesReposModel(this);
 }
 
-bool AudioNotesApp::emptyNotes() const
+bool AudioNotesApp::isRepoListEmpty() const
 {
+    if (!m_reposModel)
+    {
+        qDebug() << trUtf8("Internal repo model is not valid. Terminating!");
+        QCoreApplication::exit(-1);
+    }
     return m_reposModel->rowCount(QModelIndex()) == 0;
 }
 
 void AudioNotesApp::init()
 {
-    urls_.clear();
+    m_repos.clear();
     QFile file("init.txt");
     if (file.open(QIODevice::ReadOnly)){
         QTextStream in(&file);
         while (!in.atEnd()){
             if(auto &&path = in.readLine(); path != ""){
-                urls_.append(QUrl(path));
+                m_repos.append(QUrl(path));
             }
         }
         file.close();
     }
-    for(auto &&i : urls_){
+    for(auto &url : m_repos){
         m_reposModel->addRepo(i.toLocalFile());
     }
-    if(!emptyNotes()){
+    if(!isRepoListEmpty()){
         emit updateWindow();
     }
 }
 
 void AudioNotesApp::save()
 {
-    QString filename = "init.txt";
-    QFile file(filename);
-    if (file.open(QIODevice::ReadWrite)) {
-        QTextStream stream(&file);
-        for(auto &&i : urls_){
-            stream << i.toString() << endl;
-        }
+    Settings::i().beginWriteArray("repos");
+    for (size_t i = 0; i < m_repos.size(); ++i) {
+        Settings::i().setArrayIndex(i);
+        Settings::i().setValue("url", m_repos.at(i));
     }
-    file.close();
+    Settings::i().endArray();
 }
 
 void AudioNotesApp::addAudioRepo(const QUrl &path)
 {
     m_reposModel->addRepo(path);
-    urls_.append(path);
+    m_repos.append(path);
     save();
 }
 
-AudioNotesReposModel *AudioNotesApp::reposModel() const
+QPointer<AudioNotesReposModel> AudioNotesApp::_reposModel() const
 {
     return m_reposModel;
 }

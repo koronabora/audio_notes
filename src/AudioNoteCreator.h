@@ -1,13 +1,12 @@
 #pragma once
 
 #include <QObject>
-
+#include <QAudioRecorder>
 #include <QAudioDeviceInfo>
-
-class QAudioRecorder;
 
 class AudioNotesRepo;
 class AudioNote;
+
 class AudioNoteCreator : public QObject
 {
     Q_OBJECT
@@ -48,7 +47,7 @@ private:
 
     QString m_recordedPath;
 
-    AudioNote *audioNote() const;
-    void updateInputDevices();
+    AudioNote *_audioNote() const;
+    void _updateInputDevices();
 };
 

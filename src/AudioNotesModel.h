@@ -2,7 +2,8 @@
 
 #include <QAbstractListModel>
 
-class AudioNote;
+//class AudioNote;
+typedef std::unique_ptr<AudioNote> AudioNoteInstance;
 
 class AudioNotesModel : public QAbstractListModel
 {
@@ -14,12 +15,12 @@ public:
     QVariant data(const QModelIndex &index, int) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    void addIfNotExists(AudioNote* note);
+    void addIfNotExists(AudioNoteInstance note);
 
 public slots:
     void removeNote();
 
 public:
-    QVector<AudioNote*> m_items;
+    QList<AudioNoteInstance> m_items;
 };
 

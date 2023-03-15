@@ -13,41 +13,41 @@
 
 #include <cmath>
 
-void AudioNoteCreator::updateInputDevices()
+void AudioNoteCreator::_updateInputDevices()
 {
     auto inputDevices = QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
-    if(m_inputDevices != inputDevices) {
+    if (m_inputDevices != inputDevices) {
         m_inputDevices = std::move(inputDevices);
         emit inputDevicesChanged();
     }
 }
 
-AudioNoteCreator::AudioNoteCreator(QObject *parent)
-    : QObject{parent},
-      m_audioNote(new AudioNote(this)),
-      m_inputDevices(QAudioDeviceInfo::availableDevices(QAudio::AudioInput)),
-      m_recorder(nullptr),
-      m_recordingAccepted(false),
-      m_recordingAmplitude(0.0)
+AudioNoteCreator::AudioNoteCreator(QObject* parent)
+    : QObject{ parent },
+    m_audioNote(new AudioNote(this)),
+    m_inputDevices(QAudioDeviceInfo::availableDevices(QAudio::AudioInput)),
+    m_recorder(nullptr),
+    m_recordingAccepted(false),
+    m_recordingAmplitude(0.0)
 {
     auto updateDevicesTimer = new QTimer(this);
-    connect(updateDevicesTimer, &QTimer::timeout, this, [this](){
-        updateInputDevices();
-    });
+    connect(updateDevicesTimer, &QTimer::timeout, this, [this]() {
+        _updateInputDevices();
+        });
     updateDevicesTimer->start(5000);
 
     connect(m_audioNote, &AudioNote::nameChanged, this, &AudioNoteCreator::readyChanged);
     connect(m_audioNote, &AudioNote::pathChanged, this, &AudioNoteCreator::readyChanged);
-    connect(m_audioNote, &AudioNote::encryptedChanged, this, [this](){
-        if(!m_audioNote->encrypted()) {
+    connect(m_audioNote, &AudioNote::encryptedChanged, this, [this]() {
+        if (!m_audioNote->encrypted()) {
             m_audioNote->setPassword("");
         }
         emit readyChanged();
-    });
+        });
     connect(m_audioNote, &AudioNote::passwordChanged, this, &AudioNoteCreator::readyChanged);
 }
 
-AudioNote *AudioNoteCreator::audioNote() const
+AudioNote* AudioNoteCreator::audioNote() const
 {
     return m_audioNote;
 }
@@ -62,7 +62,7 @@ QStringList AudioNoteCreator::inputDevices() const
 {
     QStringList result;
     result.reserve(m_inputDevices.size());
-    for(auto & device: m_inputDevices){
+    for (auto& device : m_inputDevices) {
         result.append(device.deviceName());
     }
     return result;
@@ -104,17 +104,17 @@ template<QAudioFormat::SampleType SampleType, std::size_t Size>
 struct audio_buffer_data;
 
 template<std::size_t Size>
-struct audio_buffer_data<QAudioFormat::SampleType::SignedInt, Size>{
+struct audio_buffer_data<QAudioFormat::SampleType::SignedInt, Size> {
     using type = signed_interger_t<Size>;
 };
 
 template<std::size_t Size>
-struct audio_buffer_data<QAudioFormat::SampleType::UnSignedInt, Size>{
+struct audio_buffer_data<QAudioFormat::SampleType::UnSignedInt, Size> {
     using type = unsigned_interger_t<Size>;
 };
 
 template<std::size_t Size>
-struct audio_buffer_data<QAudioFormat::SampleType::Float, Size>{
+struct audio_buffer_data<QAudioFormat::SampleType::Float, Size> {
     using type = std::conditional_t<Size == 32, float, double>;
 };
 
@@ -123,29 +123,30 @@ using audio_buffer_data_t = typename audio_buffer_data<SampleType, Size>::type;
 
 
 template<QAudioFormat::SampleType SampleType>
-qreal calculateAmplitude_impl(const QAudioBuffer &) {
+qreal calculateAmplitude_impl(const QAudioBuffer&) {
     return 0.0;
 }
 
 template<QAudioFormat::SampleType SampleType, std::size_t Size, std::size_t ...SizesLeft>
-qreal calculateAmplitude_impl(const QAudioBuffer & audioBuffer) {
-    if(audioBuffer.format().sampleSize() == Size) {
+qreal calculateAmplitude_impl(const QAudioBuffer& audioBuffer) {
+    if (audioBuffer.format().sampleSize() == Size) {
         using AudioBufferData = audio_buffer_data_t<SampleType, Size>;
         qreal amplitude = 0;
         auto count = audioBuffer.sampleCount();
 
         auto data = audioBuffer.data<AudioBufferData>();
-        for(auto i=0; i<count; ++i) {
-            auto sampleAmplitude = [&data](){
-                if constexpr(SampleType == QAudioFormat::SampleType::UnSignedInt) {
-                    static constexpr auto max_value = std::numeric_limits<AudioBufferData>::max()/2;
-                    return static_cast<qreal>(static_cast<AudioBufferData>(*data)%max_value)/static_cast<qreal>(max_value);
-                } else {
+        for (auto i = 0; i < count; ++i) {
+            auto sampleAmplitude = [&data]() {
+                if constexpr (SampleType == QAudioFormat::SampleType::UnSignedInt) {
+                    static constexpr auto max_value = std::numeric_limits<AudioBufferData>::max() / 2;
+                    return static_cast<qreal>(static_cast<AudioBufferData>(*data) % max_value) / static_cast<qreal>(max_value);
+                }
+                else {
                     static constexpr auto max_value = std::numeric_limits<AudioBufferData>::max();
-                    return std::fabs(static_cast<qreal>(*data))/static_cast<qreal>(max_value);
+                    return std::fabs(static_cast<qreal>(*data)) / static_cast<qreal>(max_value);
                 }
             }();
-            amplitude += sampleAmplitude/count;
+            amplitude += sampleAmplitude / count;
             data++;
         }
         return amplitude;
@@ -153,8 +154,8 @@ qreal calculateAmplitude_impl(const QAudioBuffer & audioBuffer) {
     return calculateAmplitude_impl<SampleType, SizesLeft...>(audioBuffer);
 }
 
-qreal calculateAmplitude(const QAudioBuffer & audioBuffer) {
-    switch(audioBuffer.format().sampleType()) {
+qreal calculateAmplitude(const QAudioBuffer& audioBuffer) {
+    switch (audioBuffer.format().sampleType()) {
     case QAudioFormat::SampleType::SignedInt:
         return calculateAmplitude_impl<QAudioFormat::SampleType::SignedInt, 8, 16, 32, 64>(audioBuffer);
     case QAudioFormat::SampleType::UnSignedInt:
@@ -166,24 +167,24 @@ qreal calculateAmplitude(const QAudioBuffer & audioBuffer) {
     }
 }
 
-void AudioNoteCreator::startRecording(const QString &device) {
-    if(m_recorder){
+void AudioNoteCreator::startRecording(const QString& device) {
+    if (m_recorder) {
         return;
     }
     m_recorder = new QAudioRecorder(this);
     auto probe = new QAudioProbe(m_recorder);
     probe->setSource(m_recorder);
-    connect(probe, &QAudioProbe::audioBufferProbed, this, [this](const QAudioBuffer & audioBuffer){
+    connect(probe, &QAudioProbe::audioBufferProbed, this, [this](const QAudioBuffer& audioBuffer) {
         m_recordingAmplitude = calculateAmplitude(audioBuffer);
         emit recordingAmplitudeChanged();
-    });
+        });
 
 
     QAudioEncoderSettings audioSettings;
 
-    auto audioDevice = [this, &device](){
-        for(auto &deviceInfo: m_inputDevices) {
-            if(deviceInfo.deviceName() == device) {
+    auto audioDevice = [this, &device]() {
+        for (auto& deviceInfo : m_inputDevices) {
+            if (deviceInfo.deviceName() == device) {
                 return deviceInfo;
             }
         }
@@ -199,20 +200,21 @@ void AudioNoteCreator::startRecording(const QString &device) {
     m_recorder->setContainerFormat("audio/ogg");
     m_recorder->setOutputLocation(QUrl::fromLocalFile("_audionote_tmp_" + QString::number(QDateTime::currentMSecsSinceEpoch())));
 
-    connect(m_recorder, &QAudioRecorder::stateChanged, this, [this](QMediaRecorder::State state){
-        if(state != QMediaRecorder::StoppedState) {
+    connect(m_recorder, &QAudioRecorder::stateChanged, this, [this](QMediaRecorder::State state) {
+        if (state != QMediaRecorder::StoppedState) {
             return;
         }
-        if(auto &&path = m_recorder->actualLocation().toLocalFile(); m_recordingAccepted) {
+        if (auto&& path = m_recorder->actualLocation().toLocalFile(); m_recordingAccepted) {
             m_recordedPath = path;
             emit readyChanged();
-        } else {
+        }
+        else {
             QFile::remove(path);
         }
         m_recorder->deleteLater();
         m_recorder = nullptr;
         emit isRecordingChanged();
-    });
+        });
 
     m_recorder->record();
     emit isRecordingChanged();
@@ -220,7 +222,7 @@ void AudioNoteCreator::startRecording(const QString &device) {
 
 void AudioNoteCreator::stopRecording()
 {
-    if(!m_recorder) {
+    if (!m_recorder) {
         return;
     }
     m_recordingAccepted = true;
@@ -230,14 +232,14 @@ void AudioNoteCreator::stopRecording()
 
 void AudioNoteCreator::cancelRecording()
 {
-    if(!m_recorder) {
+    if (!m_recorder) {
         return;
     }
     m_recordingAccepted = false;
     m_recorder->stop();
 }
 
-void AudioNoteCreator::create(AudioNotesRepo *targetRepo)
+void AudioNoteCreator::create(AudioNotesRepo* targetRepo)
 {
     m_audioNote->setPath(targetRepo->path() + "/" + QString::number(QDateTime::currentMSecsSinceEpoch()) + ".audionote");
     m_audioNote->saveToFile(m_recordedPath);

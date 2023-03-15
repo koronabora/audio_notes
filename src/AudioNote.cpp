@@ -28,7 +28,8 @@ void AudioNote::init()
     setEncrypted(object.value("emcrypted").toBool());
     setPassword(object.value("password").toString());
 
-    QByteArray content = f.readAll();
+    // TODO: add lazy loading
+    QByteArray content = f.readAll(); 
     m_playback = new AudioNotePlayback(content, this);
 
 
@@ -160,25 +161,26 @@ const QVariantList &AudioNote::samples() const
     return m_samples;
 }
 
-AudioNotePlayback *AudioNote::playback() const
+AudioNotePlayback *AudioNote::_playback() const
 {
     return m_playback;
 }
 
-AudioNote* AudioNote::build(const QString &path)
+std::unique_ptr<AudioNote> AudioNote::build(const QString &path)
 {
-    auto note = new AudioNote();
+    auto note = std::make_unique<AudioNote>();
     note->setPath(path);
     note->init();
-    return note;
+    return std::move(note);
 }
 
-void AudioNote::saveToFile(const QString &filePath)
+bool AudioNote::saveToFile(const QString &filePath)
 {
     QJsonObject obj;
     obj.insert("name", m_name);
     obj.insert("color", m_color.name());
-    obj.insert("emcrypted", m_encrypted);
+    obj.insert("encrypted", m_encrypted);
+    // TODO: add passhash + salt
     if(m_encrypted){
         obj.insert("password", m_password);
     }

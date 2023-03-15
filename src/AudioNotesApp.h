@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QVector>
 #include <QUrl>
+#include <QPointer>
 
 class AudioNotesReposModel;
 
@@ -14,7 +15,7 @@ class AudioNotesApp : public QObject
 public:
     explicit AudioNotesApp(QObject *parent = nullptr);
 
-    bool emptyNotes() const;
+    bool isRepoListEmpty() const;
 
     void init();
     void save();
@@ -26,9 +27,9 @@ public slots:
     void addAudioRepo(const QUrl &path);
 
 private:
-    AudioNotesReposModel *m_reposModel;
-    QVector<QUrl> urls_;
+    QPointer<AudioNotesReposModel> m_reposModel;
+    QList<QUrl> m_repos;
 
-    AudioNotesReposModel *reposModel() const;
+    QPointer<AudioNotesReposModel> _reposModel() const;
 };
 
